@@ -1,93 +1,95 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta name="generator" content="Zettlr" />
-  <meta name="date" content="" />
-  <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Open+Sans&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="custom.css">
-  <title></title>
-
-
-<!-- Pandoc variables -->
-
-<!-- Additional CSS in case the user has passed it -->
-
-<!-- Include MathJax CDN, if applicable -->
-</head>
-<body>
-  <!-- Render in article for reader view enabling -->
-    <article>
-    <!-- Indentation must be zero for, e.g., PREs to work correctly -->
-<h2 id="why-would-anyone">Why would anyone…</h2>
-<p>I was looking for a convinient way to query and aggregate raster data (e.g. satellite images) with Azure PaaS services. Yes I know there is plenty of other cloud services, open-source tools and commercial products that are well suited for this. But that’s not the point here :) I decided to give Azure Data Explorer (ADX) a try with the problem as I previously had great experiences with it.</p>
-<h2 id="finding-data-to-ingest.">Finding data to ingest.</h2>
-<p>This example uses <a href="https://lpdaac.usgs.gov/products/mod13a1v006/">MOD13A1.006</a> from NASA that contains <a href="https://en.wikipedia.org/wiki/Normalized_difference_vegetation_index">Normalized Difference Vegetation Index (NDVI)</a> values for the whole globe. I chose it mainly because it’s easily available as <a href="https://www.cogeo.org/">Cloud Optimized GeoTiff</a> from AWS S3. The approach should work with any raster data however.</p>
-<p>Because each image took so much space and after conversion even more, I used a VM in Azure to do the job. For this VM I installed following tools: <ul> <li>GDAL 2.4.2 <li> AWS CLI <li> AZ CLI</ul></p>
-<h3 id="extract">Extract</h3>
-<p>The source I used is https://modis-vi-nasa.s3-us-west-2.amazonaws.com/ and you can start by copying example image with following command:</p>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
+    <title>Why would anyone...</title>
+    <link type="text/css" rel="stylesheet" href="assets/css/github-markdown.css">
+    <link type="text/css" rel="stylesheet" href="assets/css/pilcrow.css">
+    <link type="text/css" rel="stylesheet" href="assets/css/hljs-github.min.css"/>
+  </head>
+  <body>
+    <article class="markdown-body"><h2 id="why-would-anyone..."><a class="header-link" href="#why-would-anyone..."></a>Why would anyone...</h2>
+<p>I was looking for a convinient way to query and aggregate raster data (e.g. satellite images) with Azure PaaS services. Yes I know there is plenty of other cloud services, open-source tools and commercial products that are well suited for this. But that&#39;s not the point here :) I decided to give Azure Data Explorer (ADX) a try with the problem as I previously had great experiences with it.</p>
+<h2 id="finding-data-to-ingest."><a class="header-link" href="#finding-data-to-ingest."></a>Finding data to ingest.</h2>
+<p>This example uses  <a href="https://lpdaac.usgs.gov/products/mod13a1v006/">MOD13A1.006</a> from NASA that contains <a href="https://en.wikipedia.org/wiki/Normalized_difference_vegetation_index">Normalized Difference Vegetation Index (NDVI)</a> values for the whole globe. I chose it mainly because it&#39;s easily available as <a href="https://www.cogeo.org/">Cloud Optimized GeoTiff</a> from AWS S3. The approach should work with any raster data however. </p>
+<p>Because each image took so much space and after conversion even more, I used a VM in Azure to do the job.
+For this VM I installed following tools:</p>
+<ul class="list">
+<li>GDAL 2.4.2</li>
+<li>AWS CLI</li>
+<li>AZ CLI</li>
+</ul>
+<h3 id="extract"><a class="header-link" href="#extract"></a>Extract</h3>
+<p>The source I used is <a href="https://modis-vi-nasa.s3-us-west-2.amazonaws.com/">https://modis-vi-nasa.s3-us-west-2.amazonaws.com/</a> and you can start by copying example image with following command:</p>
 <p><code>aws s3 cp s3://modis-vi-nasa/MOD13A1.006/2018.03.22.tif ./</code></p>
-<p>Each image is about 1.5Gb and present NDVI measurements of the whole globe. Each pixel in the image is a value between 0 and 1. There are areas that were not measured by the satellite. These are presented with value -3000.</p>
-<h3 id="transform">Transform</h3>
+<p>Each image is about 1.5Gb  and present NDVI measurements of the whole globe. Each pixel in the image is a value between 0 and 1. There are areas that were not measured by the satellite. These are presented with value -3000. </p>
+<h3 id="transform"><a class="header-link" href="#transform"></a>Transform</h3>
 <p>To ingest the image into ADX, it needs to be in text/row format. I used GDAL to convert the Tiff into CSV file with following command:</p>
-<p><code>gdal_translate -of xyz -co ADD_HEADER_LINE=NO -co COLUMN_SEPARATOR="," 2018.03.22.tif /vsistdout | grep -v "\-3000" &gt; 2018.03.22.csv</code></p>
-<p>The pipe with grep in the command is about filtering the ‘non values’ out. Otherwise the result will get really big. The gdal_translate AFAIK does not work with multiple bands when using xyz translation. In this case you need either convert each band to a different file and then merge them, or just write a python script that does the transformation using the GDAL library (or find one from Github).</p>
+<p><code>gdal_translate -of xyz -co ADD_HEADER_LINE=NO -co COLUMN_SEPARATOR=&quot;,&quot; 2018.03.22.tif /vsistdout | grep -v &quot;\-3000&quot; &gt; 2018.03.22.csv</code></p>
+<p>The pipe with grep in the command is about filtering the &#39;non values&#39; out. Otherwise the result will get really big.
+The gdal_translate AFAIK does not work with multiple bands when using xyz translation. In this case you need either convert each band to a different file and then merge them, or just write a python script that does the transformation using the GDAL library (or find one from Github).</p>
 <p>GDAL will generate some unwanted content in the begining of the file which you can remove with this command:</p>
-<p><code>ex -sc '1d1|x' 2018.03.22.csv</code></p>
+<p><code>ex -sc &#39;1d1|x&#39; 2018.03.22.csv</code></p>
 <p>You will likely notice that the file is really big and any operations are going to take lot of time :)</p>
-<p>ADX does not ingest files larger than 2G. With <code>ls -lah</code> we can see that our CSV file is already 21G. To fix that and make following operations faster, let’s split the file to smaller chunks. To use <code>split</code>command, we need to first know how many lines are there in the file. You can count number of the lines relatively fast with command:</p>
+<p>ADX does not ingest files larger than 2G. With <code>ls -lah</code> we can see that our CSV file is already 21G. To fix that and make following operations faster, let&#39;s split the file to smaller chunks. To use <code>split</code>command, we need to first know how many lines are there in the file. You can count number of the lines relatively fast with command:</p>
 <p><code>dd if=2018.03.22.csv bs=256M | wc -l</code></p>
-<p>If we split the result of 352424394 lines with 20 then we should get number of lines we need for about 1G chunks. 10000000 is close enough :). To split the file with this number, use command:</p>
+<p>If we split the result of 352424394 lines with 20 then we should get number of lines we need for about 1G chunks. 10000000 is close enough :).  To split the file with this number, use command:</p>
 <p><code>split -l 10000000 2018.03.22.csv 2018.03.22- --additional-suffix=.csv</code></p>
-<p>Next we add date column into the CSV file for later use in ADX. The date must be in a format recognized by ADX (<a href="https://www.iso.org/iso-8601-date-and-time-format.html">ISO 8601</a>). Here we use 2018-03-22.</p>
-<p><code>sed -i "s/$/,2018-03-22/" 2018.03.22-*.csv</code></p>
-      <p>That is the transformation done. Finally let’s archive the original CSV file, so that it does not affect the commands executed later.</p><p> <code>gzip 2018.03.22.csv</code></p>
-<h3 id="load">Load</h3>
-<p>Let’s push the files into Azure Blob Storage for ADX ingestion. First we need to create a storage account and there a blob storage container that we call ‘modis’ (or what ever you want :), just remember the name later ). <a href="https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal">Check out these docs if you don’t know how.</a></p>
-      <p>Then copy from the access-keys part of your storage account page (in azure portal) the connection string. Export this into your shell environment with: </p><p><code>export AZURE_STORAGE_CONNECTION_STRING="THEKEYICOPIEDFROMAZUREPORTAL"</code></p>
-      <p>With this, you can upload all the csv files into the container (named modis) with single command:</p><p> <code>az storage blob upload-batch -d modis -s . --pattern "*.csv"</code></p>
-<h2 id="ingest-to-adx">Ingest to ADX</h2>
-<p>To start your ingest, <a href="https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal">first create a ADX cluster and a database.</a></p>
-<p>Create a Shared Access Signature (<em>SAS</em>) for your storage account. This is a URL that allows the ADX connect into your protected storage. Think it as a link that also contains a password. The page where you generate it looks like this: <img src="ebce02aa9cdac91922bc124328de1ee3.png" alt="ebce02aa9cdac91922bc124328de1ee3.png" /></p>
+<p>Next we add date column into the CSV file for later use in ADX. The date must be in a format recognized by ADX (<a href="https://www.iso.org/iso-8601-date-and-time-format.html">ISO 8601</a>). Here we use 2018-03-22. </p>
+<p><code>sed -i &quot;s/$/,2018-03-22/&quot; 2018.03.22-*.csv</code></p>
+<p>That is the transformation done. Finally let&#39;s archive the original CSV file, so that it does not affect the commands executed later.
+<code>gzip 2018.03.22.csv</code></p>
+<h3 id="load"><a class="header-link" href="#load"></a>Load</h3>
+<p>Let&#39;s push the files into Azure Blob Storage for ADX ingestion. First we need to create a storage account and there a blob storage container that we call &#39;modis&#39; (or what ever you want :), just remember the name later ). <a href="https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal">Check out these docs if you don&#39;t know how.</a></p>
+<p>Then copy from the access-keys part of your storage account page (in azure portal) the connection string. Export this into your shell environment with:
+<code>export AZURE_STORAGE_CONNECTION_STRING=&quot;THEKEYICOPIEDFROMAZUREPORTAL&quot;</code></p>
+<p>With this, you can upload all the csv files into the container (named modis) with single command:
+<code>az storage blob upload-batch -d modis -s . --pattern &quot;*.csv&quot;</code></p>
+<h2 id="ingest-to-adx"><a class="header-link" href="#ingest-to-adx"></a>Ingest to ADX</h2>
+<p>To start your ingest, <a href="https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal">first create a ADX cluster and a database.</a> </p>
+<p>Create a Shared Access Signature (<em>SAS</em>) for your storage account. This is a URL that allows the ADX connect into your protected storage. Think it as a link that also contains a password. The page where you generate it looks like this:
+<img src="ebce02aa9cdac91922bc124328de1ee3.png" alt="ebce02aa9cdac91922bc124328de1ee3.png"></p>
 <p>Make sure you have selected all the resource types (Service, Container, Object) before clicking Generate button</p>
-<p>Copy the ‘Blob service SAS URL’ that it generated. It should be something like https://storageaccountname.blob.core.windows.net/?sv=1203u120938LOTOFTHINGS you need to append the name of your container (modis) to the end of the link, so that it looks like this: https://storageaccountname.blob.core.windows.net/modis?sv=1203u120938LOTOFTHINGS</p>
-<p>Then let’s go to the newly created ADX:</p>
-<p style="text-align: left">Right click your database and select ‘ingest new data’ <img src="8ff9552cb5eb2c9df07b58df1e5e4d22.png" alt="8ff9552cb5eb2c9df07b58df1e5e4d22.png" /></p>
-<p style="text-align: left">This should open a screen like this: <img src="879e2c132e1062080f1717331dcd3b6e.png" alt="879e2c132e1062080f1717331dcd3b6e.png" /></p>
-<p>Here select source type ‘from container’ instead of blob. Add your modified <em>SAS url</em> into the <em>link to storage</em> field. Set <em>Sample Size</em> to be larger than number of files you uploaded to the storage. The files from your storage should appear into the box beneath. Select one of the files, and click <em>Edit Schema</em>.</p>
-<p>The default settings in Schema should be ok. Set the datatype of Column4 to datetime, if its not automatically correct. <img src="7467aea664d45fab62c426952a866260.png" alt="7467aea664d45fab62c426952a866260.png" /> After this let’s wait a bit and then run some queries.</p>
-<h2 id="query-and-aggregate">Query and aggregate</h2>
-<p>I draw a random square (with geojson.io) near <em>Curry</em> that looks like this:</p>
-<figure>
-<img src="05e1a40d2cb5a0bb85ce1ff32e1de279.png" alt="" />
-</figure>
+<p>Copy the &#39;Blob service SAS URL&#39; that it generated. It should be something like <a href="https://storageaccountname.blob.core.windows.net/?sv=1203u120938LOTOFTHINGS">https://storageaccountname.blob.core.windows.net/?sv=1203u120938LOTOFTHINGS</a>
+you need to append the name of your container (modis) to the end of the link, so that it looks like this:
+<a href="https://storageaccountname.blob.core.windows.net/modis?sv=1203u120938LOTOFTHINGS">https://storageaccountname.blob.core.windows.net/modis?sv=1203u120938LOTOFTHINGS</a></p>
+<p>Then let&#39;s go to the newly created ADX:</p>
+<p>Right click your database and select &#39;ingest new data&#39;
+<img src="8ff9552cb5eb2c9df07b58df1e5e4d22.png" alt="8ff9552cb5eb2c9df07b58df1e5e4d22.png"></p>
+<p>This should open a screen like this:
+<img src="879e2c132e1062080f1717331dcd3b6e.png" alt="879e2c132e1062080f1717331dcd3b6e.png"></p>
+<p>Here select source type &#39;from container&#39; instead of blob. Add your modified <em>SAS url</em> into the <em>link to storage</em> field.
+Set <em>Sample Size</em> to be larger than number of files you uploaded to the storage. The files from your storage should appear into the box beneath. Select one of the files, and click <em>Edit Schema</em>.</p>
+<p>The default settings in Schema should be ok. Set the datatype of Column4 to datetime, if its not automatically correct.
+<img src="7467aea664d45fab62c426952a866260.png" alt="7467aea664d45fab62c426952a866260.png">
+After this let&#39;s wait a bit and then run some queries.</p>
+<h2 id="query-and-aggregate"><a class="header-link" href="#query-and-aggregate"></a>Query and aggregate</h2>
+<p>I draw a random square (with geojson.io) near <em>Curry</em> that looks like this: </p>
+<p class="img-container"><img src="05e1a40d2cb5a0bb85ce1ff32e1de279.png" alt="05e1a40d2cb5a0bb85ce1ff32e1de279.png"></p>
 <p>The polygon is overlaid with the NDVI values from the raster. You can see that the pixels in the raster are not straight squares. This is because how the satellite is positioned. <a href="https://modis-land.gsfc.nasa.gov/MODLAND_grid.html">Find out more here.</a></p>
-<p>How to find out what is the average NDVI over this region between all the dates we uploaded? Here is the query that will do that for you.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1"></a>let curry <span class="op">=</span> dynamic({  </span>
-<span id="cb1-2"><a href="#cb1-2"></a>        <span class="ot">&quot;type&quot;</span>: <span class="ot">&quot;Polygon&quot;</span>,  </span>
-<span id="cb1-3"><a href="#cb1-3"></a>        <span class="ot">&quot;coordinates&quot;</span>:  [[[<span class="op">-</span><span class="fl">87.21136093139648</span>, <span class="fl">33.87953701355924</span>], </span>
-<span id="cb1-4"><a href="#cb1-4"></a>                          [<span class="op">-</span><span class="fl">87.0663070678711</span>, <span class="fl">33.87953701355924</span>],</span>
-<span id="cb1-5"><a href="#cb1-5"></a>                          [<span class="op">-</span><span class="fl">87.0663070678711</span>, <span class="fl">33.944499207394635</span>],  </span>
-<span id="cb1-6"><a href="#cb1-6"></a>                          [<span class="op">-</span><span class="fl">87.21136093139648</span>,<span class="fl">33.944499207394635</span>],</span>
-<span id="cb1-7"><a href="#cb1-7"></a>                          [<span class="op">-</span><span class="fl">87.21136093139648</span>,<span class="fl">33.87953701355924</span>]]]  </span>
-<span id="cb1-8"><a href="#cb1-8"></a>      });  </span>
-<span id="cb1-9"><a href="#cb1-9"></a>MODIS   </span>
-<span id="cb1-10"><a href="#cb1-10"></a>| where geo_point_in_polygon(Column1, Column2, curry)  </span>
-<span id="cb1-11"><a href="#cb1-11"></a>| summarize avg(Column3) by Column4  </span>
-<span id="cb1-12"><a href="#cb1-12"></a>| render timechart</span></code></pre></div>
-<p>Okay that was not too bad. The ingestion part could be easily automated and the query part looks nice enough :D</p>
-<h3 id="work-to-do">Work to do</h3>
+<p>How to find out what is the average NDVI over this region between all the dates we uploaded?
+Here is the query that will do that for you.</p>
+<pre class="hljs"><code>let curry = dynamic({  
+        "type": "Polygon",  
+        "coordinates":  [[[-87.21136093139648, 33.87953701355924], 
+                          [-87.0663070678711, 33.87953701355924],
+                          [-87.0663070678711, 33.944499207394635],  
+                          [-87.21136093139648,33.944499207394635],
+                          [-87.21136093139648,33.87953701355924]]]  
+      });  
+MODIS   
+| where geo_point_in_polygon(Column1, Column2, curry)  
+| summarize avg(Column3) by Column4  
+| render timechart</code></pre><p>Okay that was not too bad. The ingestion part could be easily automated and the query part looks nice enough :D </p>
+<h3 id="work-to-do"><a class="header-link" href="#work-to-do"></a>Work to do</h3>
 <p>The query performance seems to grow linearly with the amount of days I have uploaded. I still need to do some benchmarking and optimization.</p>
 <p>The approach to convert something like MODIS data into points was likely a bit naivistic. There seems to be slight difference with reference calculations I did with <a href="https://earthengine.google.com/">Google Earth Engine</a>.</p>
-<p>If we look the leftmost points returned by the ADX query overlaid with the area and the NDVI layer, it’s clear there is some sort of projection error. Oh well, at least we cannot blame ADX calculating wrong here :)</p>
-<figure>
-<img src="96ac986f0e1b07391f493ba5cc473584.png" alt="" />
-</figure>
-<h2 id="notes">Notes</h2>
+<p>If we look the leftmost points returned by the ADX query overlaid with the area and the NDVI layer, it&#39;s clear there is some sort of projection error. Oh well, at least we cannot blame ADX calculating wrong here :) </p>
+<p class="img-container"><img src="96ac986f0e1b07391f493ba5cc473584.png" alt="96ac986f0e1b07391f493ba5cc473584.png"></p>
+<h2 id="notes"><a class="header-link" href="#notes"></a>Notes</h2>
 <p>ADX database seems to grow linearly. Single 1.5G raster ingestion inceased size by 4G. This 1.5G was 500x500m resolution landmass image.</p>
 <p>There is still no autoshutdown feature in ADX. Remember to turn it off after your experiments specially with larger VM sizes.</p>
-  </article>
-</body>
+    </article>
+  </body>
 </html>
