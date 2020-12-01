@@ -1,6 +1,7 @@
+#  Azure Data Explorer with Remote Sensing Data
 ## Why would anyone...
 
-I was looking for a convinient way to query and aggregate raster data (e.g. satellite images) with Azure PaaS services. Yes I know there is plenty of other cloud services, open-source tools and commercial products that are well suited for this. But that's not the point here :) I decided to give Azure Data Explorer (ADX) a try with the problem as I previously had great experiences with it.
+I was looking for a convenient way to query and aggregate raster data (e.g. satellite images) with Azure PaaS services. Yes I know there is plenty of other cloud services, open-source tools and commercial products that are well suited for this. But that's not the point here :) I decided to give Azure Data Explorer (ADX) a try with the problem as I previously had great experiences with it.
 
 ## Finding data to ingest.
 
@@ -11,6 +12,7 @@ For this VM I installed following tools:
 * GDAL 2.4.2
 * AWS CLI
 * AZ CLI
+* proj, needed in Appendix 1 for the cs2cs tool
 
 ### Extract
 
@@ -29,7 +31,7 @@ To ingest the image into ADX, it needs to be in text/row format. I used GDAL to 
 The pipe with grep in the command is about filtering the 'non values' out. Otherwise the result will get really big.
 The gdal_translate AFAIK does not work with multiple bands when using xyz translation. In this case you need either convert each band to a different file and then merge them, or just write a python script that does the transformation using the GDAL library (or find one from Github).
 
-GDAL will generate some unwanted content in the begining of the file which you can remove with this command:
+GDAL will generate some unwanted content in the beginning of the file which you can remove with this command:
 
 `ex -sc '1d1|x' 2018.03.22.csv`
 
@@ -111,12 +113,14 @@ MODIS 
 | summarize avg(Column3) by Column4  
 | render timechart
 ```
+The query gives you this chart:
 
-Okay that was not too bad. The ingestion part could be easily automated and the query part looks nice enough :D 
+![e75f0bd23b656bad8a575f0b960b9154.png](e75f0bd23b656bad8a575f0b960b9154.png)
 
-### Work to do
 
-The query performance seems to grow linearly with the amount of days I have uploaded. I still need to do some benchmarking and optimization.
+There is only 2 dates in my database at the query moment, so it's bit short chart :) So that was not too bad. The ingestion part could be easily automated and the query part looks nice enough :D 
+
+### Problems with the points
 
 The approach to convert something like MODIS data into points was likely a bit naivistic. There seems to be slight difference with reference calculations I did with [Google Earth Engine](https://earthengine.google.com/).
 
@@ -124,9 +128,31 @@ If we look the leftmost points returned by the ADX query overlaid with the area 
 
 ![96ac986f0e1b07391f493ba5cc473584.png](96ac986f0e1b07391f493ba5cc473584.png)
 
+## Getting the bottom of the projection error
+My assumption was that the error was coming from the NASA cloud optimised geotiff. To test it out, I downloaded one tile of  original MODIS HDF set and converted it directly to csv with it's sinusoidal projection. I'm not describing the process of downloading here as it's not really in scope. Conversion itself from HDF files to csv was easy:
+
+`gdal_translate -of xyz -co ADD_HEADER_LINE=NO -co COLUMN_SEPARATOR=","  MOD13Q1.A2019081.h08v06.006.2019098110145_01.tif 20190322-8-6.csv`
+
+This particular tile is somewhere in Mexico.
+
+Then I transformed the Sinusoidal coordinates to WGS85 with the proj tool's cs2cs command:
+
+`cat 20190322-8-6.csv |sed 's/,/ /' | cs2cs +proj="sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs" -f '%.6f' | grep -v "\-3000" | sed 's/0.000000//' | sed $'s/\t/,/g' |sed 's/ //' | sed "s/$/,2019-03-22/" > 20190322.csv`
+
+This transformation also adds the date into the csv file and cleans tabs & spaces and some other garbage from the cs2cs run. How do you know the parameters for the projection? I suppose the options are either to study something related that in university or just google around like me :) Tricky part is knowing when it's right. This you have to test by trying out how the points look in map. Visualising points around islands is a good trick.
+
+Here is image where left you see Google Earth Engine visualization of NDVI values over 0.3. Right side is visualization of same points in ADX. Looks like a good match. Also average NDVI calculations now match between ADX and GEE.
+
+![44b99266a43ade3041aa8182b6f4eaf1.png](44b99266a43ade3041aa8182b6f4eaf1.png)
+
+
+## Performance
+
+Performance of the ADX is linear in all of the dimensions. Add data and the query gets slower. Add CPU and the query gets faster. There is no spatial indexing or any other kind of indexing. It's NoSQL database that works with partitions, row orders and shards.
+With V3 engine and cluster of 2 Standard D11 V2 nodes it takes about 10 seconds per day of full global data to query the averages of NDVI per day of the island presented above in the picture. I tried few partitioning options but it did not affect the query performance. Increasing the node count from 2 to 8 however drops the waiting time to about 3 seconds per day.
+
 ## Notes
 
-ADX database seems to grow linearly. Single 1.5G raster ingestion inceased size by 4G. This 1.5G was 500x500m resolution landmass image.
+ADX database seems to grow linearly. Single 1.5G raster ingestion increased size by 4G. This 1.5G was 500x500m resolution landmass image.
 
 There is still no autoshutdown feature in ADX. Remember to turn it off after your experiments specially with larger VM sizes.
-
