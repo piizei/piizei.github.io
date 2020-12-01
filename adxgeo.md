@@ -135,7 +135,7 @@ My assumption was that the error was coming from the NASA cloud optimised geotif
 
 This particular tile is somewhere in Mexico.
 
-Then I transformed the Sinusoidal coordinates to WGS85 with the proj tool's cs2cs command:
+Then I transformed the Sinusoidal coordinates to WGS84 with the proj tool's cs2cs command:
 
 `cat 20190322-8-6.csv |sed 's/,/ /' | cs2cs +proj="sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs" -f '%.6f' | grep -v "\-3000" | sed 's/0.000000//' | sed $'s/\t/,/g' |sed 's/ //' | sed "s/$/,2019-03-22/" > 20190322.csv`
 
