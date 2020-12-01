@@ -102,6 +102,8 @@ MODIS
 <h2 id="performance"><a class="header-link" href="#performance"></a>Performance</h2>
 <p>Performance of the ADX is linear in all of the dimensions. Add data and the query gets slower. Add CPU and the query gets faster. There is no spatial indexing or any other kind of indexing. It&#39;s NoSQL database that works with partitions, row orders and shards.
 With V3 engine and cluster of 2 Standard D11 V2 nodes it takes about 10 seconds per day of full global data to query the averages of NDVI per day of the island presented above in the picture. I tried few partitioning options but it did not affect the query performance. Increasing the node count from 2 to 8 however drops the waiting time to about 3 seconds per day.</p>
+<h3 id="work-to-do"><a class="header-link" href="#work-to-do"></a>Work to do</h3>
+<p>At the moment I&#39;m looking into inline python which seems like particular handy functionality with remote sensing data. Typically there are multiple data values in the raster image called bands. Some of these bands are data from different sensors like infrared or blue spectrum and others are quality data like percentage of clouds. Typically you would calculate several bands together and ignore cloudy values in averages etc.</p>
 <h2 id="notes"><a class="header-link" href="#notes"></a>Notes</h2>
 <p>ADX database seems to grow linearly. Single 1.5G raster ingestion increased size by 4G. This 1.5G was 500x500m resolution landmass image.</p>
 <p>There is still no autoshutdown feature in ADX. Remember to turn it off after your experiments specially with larger VM sizes.</p>

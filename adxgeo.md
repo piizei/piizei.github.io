@@ -151,6 +151,9 @@ Here is image where left you see Google Earth Engine visualization of NDVI value
 Performance of the ADX is linear in all of the dimensions. Add data and the query gets slower. Add CPU and the query gets faster. There is no spatial indexing or any other kind of indexing. It's NoSQL database that works with partitions, row orders and shards.
 With V3 engine and cluster of 2 Standard D11 V2 nodes it takes about 10 seconds per day of full global data to query the averages of NDVI per day of the island presented above in the picture. I tried few partitioning options but it did not affect the query performance. Increasing the node count from 2 to 8 however drops the waiting time to about 3 seconds per day.
 
+### Work to do
+At the moment I'm looking into inline python which seems like particular handy functionality with remote sensing data. Typically there are multiple data values in the raster image called bands. Some of these bands are data from different sensors like infrared or blue spectrum and others are quality data like percentage of clouds. Typically you would calculate several bands together and ignore cloudy values in averages etc.
+
 ## Notes
 
 ADX database seems to grow linearly. Single 1.5G raster ingestion increased size by 4G. This 1.5G was 500x500m resolution landmass image.
